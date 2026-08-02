@@ -97,7 +97,7 @@ export default async function AdminUsersPage() {
             </tr>
           </thead>
           <tbody>
-            {usersWithQr.map((u) => (
+            {usersWithQr.map((u: any) => (
               <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '12px', fontWeight: '500' }}>{u.name}</td>
                 <td style={{ padding: '12px' }}>
