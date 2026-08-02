@@ -1,27 +1,47 @@
-// app/dashboard/page.tsx
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { getProducts } from '@/app/actions/productActions';
 import { getReceipts } from '@/app/actions/receiptActions';
 import Link from 'next/link';
 
+interface CustomUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  id?: string;
+  role?: string;
+  companyId?: string;
+}
+
 export default async function DashboardPage() {
   const session = await getServerSession();
 
-  if (!session) {
+  if (!session || !session.user) {
     redirect('/login');
   }
 
-  // Gauname duomenis iš duomenų bazės tiesiai serverio pusėje
-  const products = await getProducts();
-  const receipts = await getReceipts();
+  const user = session.user as CustomUser;
+
+  // Saugiai krauname duomenis lygiagrečiai, kad nesulėtintume puslapio
+  let products: any[] = [];
+  let receipts: any[] = [];
+  let errorMessage: string | null = null;
+
+  try {
+    const [fetchedProducts, fetchedReceipts] = await Promise.all([
+      getProducts().catch(() => []),
+      getReceipts().catch(() => [])
+    ]);
+    products = fetchedProducts;
+    receipts = fetchedReceipts;
+  } catch (error: any) {
+    errorMessage = error.message || 'Nepavyko užkrauti duomenų iš serverio.';
+  }
 
   // Apskaičiuojame pagrindinius rodiklius (metrikas)
-  const totalRevenue = receipts.reduce((sum, r) => sum + r.totalAmount, 0);
+  const totalRevenue = receipts.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
   const receiptsCount = receipts.length;
   const productsCount = products.length;
-
-  const user = session.user as any;
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 selection:bg-indigo-500 selection:text-white">
@@ -33,15 +53,23 @@ export default async function DashboardPage() {
           </div>
           <div>
             <h1 className="text-base font-bold text-slate-100 tracking-tight">Direktoriaus Valdymo Skydas</h1>
-            <p className="text-xs text-slate-400">Prisijungęs: {user?.name || user?.email} • Įmonė: {user?.companyId}</p>
+            <p className="text-xs text-slate-400">
+              Prisijungęs: {user?.name || user?.email} • Įmonė ID: <span className="font-mono text-indigo-400">{user?.companyId || 'Nenurodytas'}</span>
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Link 
+            href="/admin/users" 
+            className="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 px-4 py-2 rounded-xl text-xs font-semibold border border-indigo-500/30 transition"
+          >
+            Kasininkų valdymas
+          </Link>
+          <Link 
             href="/" 
             className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold border border-slate-700 transition"
           >
-            Atidaryti Kasos Terminalą
+            Kasos Terminalas
           </Link>
           <Link 
             href="/api/auth/signout" 
@@ -55,6 +83,14 @@ export default async function DashboardPage() {
       {/* Pagrindinis turinys */}
       <div className="max-w-7xl mx-auto space-y-8">
         
+        {/* Klaidos pranešimas, jei nepavyko gauti duomenų */}
+        {errorMessage && (
+          <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl text-sm text-rose-400 flex items-center gap-3">
+            <span className="text-lg shrink-0">⚠️</span> 
+            <span>{errorMessage} (Jei ką tik prisiregistravote, būtinai atsijunkite ir prisijunkite iš naujo, kad atsinaujintų sesija).</span>
+          </div>
+        )}
+
         {/* Metrikų kortelės */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl shadow-lg">
@@ -76,7 +112,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Lentelelės: Naujausi čekiai ir Prekių sąrašas */}
+        {/* Lentelės: Naujausi čekiai ir Prekių sąrašas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Naujausi čekiai */}
@@ -95,7 +131,7 @@ export default async function DashboardPage() {
                     <div>
                       <p className="font-semibold text-slate-200">Čekis #{receipt.receiptNumber}</p>
                       <p className="text-xs text-slate-500">
-                        {new Date(receipt.createdAt).toLocaleString('lt-LT')} • {receipt.items.length} prekės
+                        {new Date(receipt.createdAt).toLocaleString('lt-LT')} • {receipt.items?.length || 0} prekės
                       </p>
                     </div>
                     <span className="font-bold text-indigo-400">€{receipt.totalAmount.toFixed(2)}</span>

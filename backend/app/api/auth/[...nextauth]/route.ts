@@ -1,4 +1,3 @@
-// app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
@@ -56,7 +55,6 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (token && session.user) {
-        // Pridėtas (session.user as any), kad TypeScript nepyktų dėl 'id', 'role' ir 'companyId'
         (session.user as any).id = token.id as string;
         (session.user as any).role = token.role;
         (session.user as any).companyId = token.companyId;

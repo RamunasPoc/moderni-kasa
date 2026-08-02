@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "mobile",
-    "slug": "mobile",
+    "slug": "moderni-kasa",
+    "scheme": "moderni-kasa",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,6 +21,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "20b2ea0d-a8b7-4969-b95e-459bc84a7579"
+      }
+    },
+    "owner": "ramunaspocius2s-team"
   }
 }

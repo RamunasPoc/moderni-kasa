@@ -4,26 +4,27 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+
 }
 
 // ==========================================
 // 1. ĮMONĖ (SaaS pagrindas - visi duomenys priklauso įmonei)
 // ==========================================
 model Company {
-  id          String   @id @default(uuid())
-  name        String   // Įmonės pavadinimas
-  companyCode String?  // Įmonės kodas
-  vatCode     String?  // PVM kodas
-  isActive    Boolean  @default(true)
+  id          String    @id @default(uuid())
+  name        String    // Įmonės pavadinimas
+  companyCode String?   // Įmonės kodas
+  vatCode     String?   // PVM kodas
+  isActive    Boolean   @default(true)
   
-  // i.EKA ir kasos nustatymai perkeliami tiesiai į įmonę
+  // i.EKA ir kasos nustatymai
   ukan        String?
   esmSerial   String?
   privateKey  String?
 
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
-  // Ryšiai (Viena įmonė turi daug darbuotojų, prekių, čekių)
+  // Ryšiai
   users       User[]
   products    Product[]
   receipts    Receipt[]
@@ -34,17 +35,17 @@ model Company {
 // ==========================================
 enum Role {
   ADMIN     // Sukuria įmonę, mato ataskaitas, kuria darbuotojus
-  CASHIER   // Jungiasi tik prie programėlės/kasos su PIN
+  CASHIER   // Jungiasi prie programėlės/kasos su PIN / biometrija
 }
 
 model User {
   id        String   @id @default(uuid())
-  email     String?  @unique // Gali būti tuščias kasininkams, jei naudos tik PIN
+  email     String?  @unique // Gali būti tuščias kasininkams
   password  String?  // Direktoriui prisijungti
-  pinCode   String?  // 4 skaitmenų PIN kasininkui (pvz. "4321")
+  pinCode   String?  // 4 skaitmenų PIN kasininkui
   name      String   
   role      Role     @default(CASHIER)
-  isActive  Boolean  @default(true) 
+  isActive  Boolean  @default(true)  
   
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -56,58 +57,62 @@ model User {
 // 3. PREKIŲ KATALOGAS
 // ==========================================
 model Product {
-  id          String   @id @default(uuid())
-  name        String   
-  barcode     String?  
-  price       Float    
-  stock       Float    @default(0) 
-  vatRate     Float    @default(21.0)
+  id           String        @id @default(uuid())
+  name         String   
+  barcode      String?       // Prekės brūkšninis kodas greitam skanavimui
+  price        Float    
+  stock        Float         @default(0) 
+  vatRate      Float         @default(21.0)
   
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-createdAt DateTime @default(now()) // <--- Pridėkite šią eilutę
-  updatedAt DateTime @updatedAt      // <--- (Nebūtina, bet naudinga)
+  companyId    String
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt     
   receiptItems ReceiptItem[]
+
+  @@index([companyId, barcode]) // Pagreitina prekių paiešką pagal barkodą kasoje
 }
 
 // ==========================================
 // 4. ČEKIAI
 // ==========================================
 model Receipt {
-  id              String   @id @default(uuid())
-  receiptNumber   Int      // Numeris unikalus įmonės ribose
+  id              String        @id @default(uuid())
+  receiptNumber   Int           // Numeris unikalus įmonės ribose
   totalAmount     Float
-  paymentMethod   String   @default("CARD")
-  status          String   @default("COMPLETED")
+  paymentMethod   String        @default("CARD")
+  status          String        @default("COMPLETED") // COMPLETED, PENDING_FISCALIZATION, FISCALIZATION_FAILED
   
-  // i.EKA specifiniai laukai grandininei sekai užtikrinti:
-  previousHash    String?  // Ankstesnio kvito hešas (būtina i.EKA grandinei)[cite: 1]
-  currentHash     String?  // Šio kvito hešas, sugeneruotas serverio[cite: 1]
-  vmiUuid         String?  // VMI grąžintas unikalus kvito identifikatorius po sėkmingos fiskalizacijos
-  cryptoSign      String?  // Skaitmeninis parašas / QR kodo duomenys
+  // i.EKA specifiniai laukai grandininei sekai užtikrítani:
+  previousHash    String?       // Ankstesnio kvito hešas
+  currentHash     String?       // Šio kvito hešas
+  vmiUuid         String?       // VMI grąžintas unikalus kvito identifikatorius
+  cryptoSign      String?       // Skaitmeninis parašas / QR kodo duomenys
   
   userId          String?
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   companyId       String
-  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
-  createdAt       DateTime @default(now())
+  createdAt       DateTime      @default(now())
   items           ReceiptItem[]
 
   @@unique([companyId, receiptNumber]) 
+  @@index([companyId, status])     // Pagreitina nesėkmingų kvitų paiešką siuntimo eilei (retry)
 }
 
 model ReceiptItem {
-  id          String   @id @default(uuid())
-  name        String
-  quantity    Float
-  price       Float
-  vatRate     Float
+  id        String   @id @default(uuid())
+  name      String
+  quantity  Float
+  price     Float
+  vatRate   Float
   
-  receiptId   String
-  receipt     Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  receiptId String
+  receipt   Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
-  productId   String?
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }

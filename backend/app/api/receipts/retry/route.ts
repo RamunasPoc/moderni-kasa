@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { IekaClient } from '@/lib/iekaClient';
 
-const prisma = new PrismaClient();
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma'; // <-- Naudokite centralizuotą prisma!
+import { IekaClient } from '@/lib/iekaClient';
 
 export async function POST(request: Request) {
   try {
