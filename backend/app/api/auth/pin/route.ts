@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
@@ -26,30 +25,43 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Randame kasininką pagal PIN kodą šioje įmonėje
-    const cashier = await prisma.user.findFirst({
+    // 2. Randame visus aktyvius įmonės kasininkus
+    const cashiers = await prisma.user.findMany({
       where: {
         companyId: company.id,
-        pinCode: pinCode,
         role: 'CASHIER',
         isActive: true,
       },
     });
 
-    if (!cashier) {
+    // 3. Ieškome, kurio kasininko užkoduotas PIN atitinka įvestą
+    let matchedCashier = null;
+
+    for (const cashier of cashiers) {
+      if (cashier.pinCode) {
+        const isPinValid = await bcrypt.compare(pinCode, cashier.pinCode);
+        if (isPinValid) {
+          matchedCashier = cashier;
+          break;
+        }
+      }
+    }
+
+    // Jei neradome atitikmens
+    if (!matchedCashier) {
       return NextResponse.json(
         { success: false, error: 'Neteisingas PIN kodas' },
         { status: 401 }
       );
     }
 
-    // Gražiname sėkmingo prisijungimo duomenis
+    // 4. Grąžiname sėkmingo prisijungimo duomenis
     return NextResponse.json({
       success: true,
       user: {
-        id: cashier.id,
-        name: cashier.name,
-        role: cashier.role,
+        id: matchedCashier.id,
+        name: matchedCashier.name,
+        role: matchedCashier.role,
         companyId: company.id,
         companyName: company.name,
       },
