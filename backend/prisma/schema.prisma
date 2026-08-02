@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// 1. ĮMONĖ (SaaS pagrindas - visi duomenys priklauso įmonei)
+// ==========================================
+model Company {
+  id          String   @id @default(uuid())
+  name        String   // Įmonės pavadinimas
+  companyCode String?  // Įmonės kodas
+  vatCode     String?  // PVM kodas
+  isActive    Boolean  @default(true)
+  
+  // i.EKA ir kasos nustatymai perkeliami tiesiai į įmonę
+  ukan        String?
+  esmSerial   String?
+  privateKey  String?
+
+  createdAt   DateTime @default(now())
+
+  // Ryšiai (Viena įmonė turi daug darbuotojų, prekių, čekių)
+  users       User[]
+  products    Product[]
+  receipts    Receipt[]
+}
+
+// ==========================================
+// 2. VARTOTOJAI (Direktoriai ir Darbuotojai)
+// ==========================================
+enum Role {
+  ADMIN     // Sukuria įmonę, mato ataskaitas, kuria darbuotojus
+  CASHIER   // Jungiasi tik prie programėlės/kasos su PIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String?  @unique // Gali būti tuščias kasininkams, jei naudos tik PIN
+  password  String?  // Direktoriui prisijungti
+  pinCode   String?  // 4 skaitmenų PIN kasininkui (pvz. "4321")
+  name      String   
+  role      Role     @default(CASHIER)
+  isActive  Boolean  @default(true) 
+  
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  receipts  Receipt[]
+}
+
+// ==========================================
+// 3. PREKIŲ KATALOGAS
+// ==========================================
+model Product {
+  id          String   @id @default(uuid())
+  name        String   
+  barcode     String?  
+  price       Float    
+  stock       Float    @default(0) 
+  vatRate     Float    @default(21.0)
+  
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+createdAt DateTime @default(now()) // <--- Pridėkite šią eilutę
+  updatedAt DateTime @updatedAt      // <--- (Nebūtina, bet naudinga)
+  receiptItems ReceiptItem[]
+}
+
+// ==========================================
+// 4. ČEKIAI
+// ==========================================
+model Receipt {
+  id            String   @id @default(uuid())
+  receiptNumber Int      // Numeris nebe @unique globaliai, o unikalus įmonės ribose
+  totalAmount   Float
+  paymentMethod String   @default("CARD")
+  status        String   @default("COMPLETED")
+  cryptoSign    String?
+  
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  items         ReceiptItem[]
+
+  // Apribojimas: čekio numeris negali kartotis toje pačioje įmonėje, bet gali sutapti skirtingose įmonėse
+  @@unique([companyId, receiptNumber]) 
+}
+
+model ReceiptItem {
+  id          String   @id @default(uuid())
+  name        String
+  quantity    Float
+  price       Float
+  vatRate     Float
+  
+  receiptId   String
+  receipt     Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
