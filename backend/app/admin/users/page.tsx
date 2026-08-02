@@ -31,7 +31,7 @@ export default async function AdminUsersPage() {
 
   // 3. Sugeneruojame QR kodus
   const usersWithQr = await Promise.all(
-    users.map(async (u) => {
+    users.map(async (u: any) => {
       let qrCodeDataUrl = '';
       try {
         qrCodeDataUrl = await QRCode.toDataURL(u.id, { width: 150, margin: 1 });
