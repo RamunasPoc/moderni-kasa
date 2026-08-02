@@ -62,7 +62,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
             </tr>
           </thead>
           <tbody>
-            {recentReceipts.map((receipt) => (
+            {recentReceipts.map((receipt: any) => (
               <tr key={receipt.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '12px' }}>#{receipt.receiptNumber}</td>
                 <td style={{ padding: '12px' }}>{receipt.totalAmount.toFixed(2)} €</td>
