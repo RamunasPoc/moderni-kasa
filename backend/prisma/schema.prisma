@@ -74,23 +74,27 @@ createdAt DateTime @default(now()) // <--- Pridėkite šią eilutę
 // 4. ČEKIAI
 // ==========================================
 model Receipt {
-  id            String   @id @default(uuid())
-  receiptNumber Int      // Numeris nebe @unique globaliai, o unikalus įmonės ribose
-  totalAmount   Float
-  paymentMethod String   @default("CARD")
-  status        String   @default("COMPLETED")
-  cryptoSign    String?
+  id              String   @id @default(uuid())
+  receiptNumber   Int      // Numeris unikalus įmonės ribose
+  totalAmount     Float
+  paymentMethod   String   @default("CARD")
+  status          String   @default("COMPLETED")
   
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  companyId     String
-  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // i.EKA specifiniai laukai grandininei sekai užtikrinti:
+  previousHash    String?  // Ankstesnio kvito hešas (būtina i.EKA grandinei)[cite: 1]
+  currentHash     String?  // Šio kvito hešas, sugeneruotas serverio[cite: 1]
+  vmiUuid         String?  // VMI grąžintas unikalus kvito identifikatorius po sėkmingos fiskalizacijos
+  cryptoSign      String?  // Skaitmeninis parašas / QR kodo duomenys
   
-  createdAt     DateTime @default(now())
-  items         ReceiptItem[]
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  // Apribojimas: čekio numeris negali kartotis toje pačioje įmonėje, bet gali sutapti skirtingose įmonėse
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  items           ReceiptItem[]
+
   @@unique([companyId, receiptNumber]) 
 }
 
