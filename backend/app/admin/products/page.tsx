@@ -38,7 +38,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             </tr>
           </thead>
           <tbody>
-            {products.map((p) => (
+            {products.map((p: any) => (
               <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '12px' }}>{p.name}</td>
                 <td style={{ padding: '12px' }}>{p.price.toFixed(2)} €</td>
