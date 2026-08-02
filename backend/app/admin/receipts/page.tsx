@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'; // <--- Naudokite šį importą, o ne PrismaClient tiesiogiai!
-import Link from 'next/link';
+
 
 export default async function AdminReceiptsPage({ searchParams }: { searchParams: Promise<{ companyId?: string }> }) {
   const resolvedSearchParams = await searchParams;
