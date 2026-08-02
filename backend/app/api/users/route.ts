@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
 import QRCode from 'qrcode';
+import bcrypt from 'bcryptjs'; // Pridėtas bcrypt importas
 
 export async function POST(request: Request) {
   try {
@@ -33,15 +33,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // SAUGUMAS: Užšifruojame PIN kodą ir slaptažodį prieš saugant DB
+    const hashedPinCode = pinCode ? await bcrypt.hash(String(pinCode), 10) : null;
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+
     // Sukuriame naują vartotoją duomenų bazėje
     const newUser = await prisma.user.create({
       data: {
         companyId,
         name,
-        pinCode: pinCode ? String(pinCode) : null,
-        role: role === 'ADMIN' ? Role.ADMIN : Role.CASHIER,
+        pinCode: hashedPinCode, // Saugome užšifruotą PIN
+        role: role === 'ADMIN' ? 'ADMIN' : 'CASHIER', // Pataisyta Role klaida (naudojamas paprastas tekstas)
         email: email || null,
-        password: password || null,
+        password: hashedPassword, // Saugome užšifruotą slaptažodį
         isActive: true,
       },
     });
