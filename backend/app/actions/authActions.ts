@@ -28,9 +28,9 @@ export async function registerCompanyAndDirector(formData: FormData) {
     // 2. Užšifruojame slaptažodį
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // 3. Prisma transakcija
-    const result = await prisma.$transaction(async (tx) => {
-      // Sukuriamas įmonės įrašas (naudojant companyCode)
+    // 3. Prisma transakcija (Pridėtas : any tipas prie tx)
+    const result = await prisma.$transaction(async (tx: any) => {
+      // Sukuriamas įmonės įrašas
       const company = await tx.company.create({
         data: {
           name: companyName,
@@ -38,7 +38,7 @@ export async function registerCompanyAndDirector(formData: FormData) {
         },
       })
 
-      // Sukuriamas administratorius (role: ADMIN, su nurodytu vardo lauku)
+      // Sukuriamas administratorius
       const user = await tx.user.create({
         data: {
           name: adminName,
