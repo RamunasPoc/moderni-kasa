@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { IekaClient } from '@/lib/iekaClient';
 
-const prisma = new PrismaClient();
+
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     );
 
     // Naudojame Prisma tranzakciją, kad užtikrintume eiliškumą ir išvengtume konfliktų
-    const result = await prisma.$transaction(async (tx) => {
+   const result = await prisma.$transaction(async (tx: any) => {
       // 1. Randame paskutinį įmonės kvitą, kad gautume jo currentHash ir numerį
       const lastReceipt = await tx.receipt.findFirst({
         where: { companyId },
