@@ -38,7 +38,7 @@ export default async function AdminReceiptsPage({ searchParams }: { searchParams
             </tr>
           </thead>
           <tbody>
-            {receipts.map((r) => (
+            {receipts.map((r: any) => (
               <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '12px' }}>#{r.receiptNumber}</td>
                 <td style={{ padding: '12px' }}>{r.totalAmount.toFixed(2)} €</td>
